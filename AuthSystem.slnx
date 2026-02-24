@@ -1,6 +1,3 @@
 <Solution>
-  <Folder Name="/Solution Items/">
-    <File Path=".gitignore" />
-  </Folder>
   <Project Path="AuthSystem/AuthSystem.csproj" />
 </Solution>

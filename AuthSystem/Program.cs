@@ -3,6 +3,7 @@ using AuthSystem.Models;
 using AuthSystem.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.JSInterop.Infrastructure;
 using System.Text;
 
 namespace AuthSystem
@@ -11,23 +12,38 @@ namespace AuthSystem
     {
         public static void Main(string[] args)
         {
+            DotNetEnv.Env.Load();
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
 
+            var dbconnectionString = Environment.GetEnvironmentVariable("MONGO_DB_URI");
+            var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
+
+
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-            builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection("Database"));
-            builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
+            builder.Services.Configure<DatabaseSettings>(options =>
+            {
+                options.ConnectionString = dbconnectionString ?? "mongodb://localhost:27017";
+                options.DatabaseName = "Auth";
+                options.Collection = "Users";
+            });
+
+            builder.Services.Configure<JwtSettings>(options =>
+            {
+                options.Key = jwtKey ?? "DefaultKeyForDevelopment123456789012345678901234567890";
+                options.Issuer = "AuthSystem";
+                options.Audience = "AuthSystemUsers";
+                options.ExpireMinutes = 60;
+            });
 
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddSingleton<UserService>();
 
 
-            var jwtSettings = builder.Configuration.GetSection("Jwt");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+            var key = Encoding.UTF8.GetBytes(jwtKey ?? "DefaultKeyForDevelopment123456789012345678901234567890");
 
             builder.Services.AddAuthentication(options =>
             {
@@ -42,8 +58,8 @@ namespace AuthSystem
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtSettings["Issuer"],
-                    ValidAudience = jwtSettings["Audience"],
+                    ValidIssuer = "AuthSystem",
+                    ValidAudience = "AuthSystemUsers",
                     IssuerSigningKey = new SymmetricSecurityKey(key)
                 };
 
@@ -59,6 +75,7 @@ namespace AuthSystem
             });
 
             builder.Services.AddAuthorization();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
