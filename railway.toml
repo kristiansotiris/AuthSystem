@@ -1,0 +1,8 @@
+[build]
+builder = "nixpacks"
+buildCommand = "dotnet publish AuthSystem/AuthSystem.csproj -c Release -o out"
+
+[deploy]
+startCommand = "dotnet out/AuthSystem.dll"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
