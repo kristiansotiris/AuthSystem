@@ -1,0 +1,52 @@
+@AuthSystem_HostAddress = https://localhost:7240
+
+GET {{AuthSystem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+
+@id=string
+GET {{AuthSystem_HostAddress}}/auth/user/{{id}}
+
+###
+
+POST {{AuthSystem_HostAddress}}/api/auth/signup
+Content-Type: application/json
+{
+  "UserName": "Takis",
+  "Email": "takis@gmail.com",
+  "PasswordHash": "takis1234"
+}
+
+###
+
+PATCH {{AuthSystem_HostAddress}}/api/auth/ban?id=69947861e85f4e8e27d78699
+
+###
+
+GET {{AuthSystem_HostAddress}}/api/auth/search?UserName=Krist
+
+###
+
+GET {{AuthSystem_HostAddress}}/api/auth/search_account_status
+
+###
+
+POST {{AuthSystem_HostAddress}}/api/auth/signin
+Content-Type: application/json
+
+{
+  "Email": "kristiansotiridev3loper@gmail.com",
+  "Password": "newpassword!23"
+}
+
+###
+
+POST {{AuthSystem_HostAddress}}/api/auth/forgot_password
+Content-Type: application/json
+{
+    "Email": "kristiansotiridev3loper@gmail.com"
+}
+
+###
