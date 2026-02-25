@@ -1,6 +1,9 @@
 ﻿using AuthSystem.Dto;
 using AuthSystem.Models;
 using AuthSystem.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +17,83 @@ namespace AuthSystem.Controllers
     {
         private readonly UserService _userServices = userService;
         private readonly TokenService _tokenServices = tokenService;
+
+
+        [Authorize]
+        [HttpGet("me")]
+        public ActionResult GetCurrentUser()
+        {
+            var userClaims = User.Claims.ToDictionary(c => c.Type, c => c.Value);
+
+            return Ok(new
+            {
+                Email = userClaims.GetValueOrDefault(ClaimTypes.Email),
+                Name = userClaims.GetValueOrDefault(ClaimTypes.Name),
+                GoogleId = userClaims.GetValueOrDefault(ClaimTypes.NameIdentifier)
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("login-google")]
+        public IActionResult GoogleLogin()
+        {
+            var properties = new AuthenticationProperties
+            {
+                RedirectUri = "/api/auth/google-response"
+            };
+            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet("google-response")]
+        public async Task<ActionResult<LoginResponseDto>> GoogleResponse()
+        {
+            try
+            {
+                var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+                if (!result.Succeeded)
+                    return BadRequest(new { Error = "Google Authentication Failed !" });
+
+                var email = result.Principal.FindFirstValue(ClaimTypes.Email);
+                var name = result.Principal.FindFirstValue(ClaimTypes.Name);
+                var googleId = result.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(email))
+                    return BadRequest(new { Error = "Failed to retrieve email from Google!" });
+
+                var googleDto = new GoogleLoginDto
+                {
+                    Email = email,
+                    UserName = name,
+                    GoogleId = googleId
+                };
+
+                var (user, message) = await _userServices.GoogleLoginAsync(googleDto);
+
+                if (user == null) return BadRequest(new { Message = message });
+
+                var token = _tokenServices.GenerateToken(user);
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+
+                Response.Cookies.Append("auth_user", token, cookieOptions);
+
+                return Redirect("https://localhost:3000/dashboard");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
 
         [HttpPost("signup")]
         public async Task<ActionResult<RegisterResponseDto>> SignUpAsync(RegisterUserDto register)

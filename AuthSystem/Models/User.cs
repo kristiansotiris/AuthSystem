@@ -19,6 +19,9 @@ namespace AuthSystem.Models
         [EmailAddress]
         public string Email { get; set; } = default!;
 
+        [BsonElement("googleId")]
+        public string? GoogleId { get; set; }
+
         [BsonElement("EmailVerified")]
         public bool EmailVerified { get; set; }
 
@@ -52,7 +55,7 @@ namespace AuthSystem.Models
         [BsonElement("PasswordHash")]
         [Required]
         [MinLength(8)]
-        public string PasswordHash { get; set; } = default!;
+        public string? PasswordHash { get; set; }
 
         [BsonElement("Role")]
         public Roles Role { get; set; } = Roles.User;

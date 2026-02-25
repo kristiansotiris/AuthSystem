@@ -1,5 +1,6 @@
 ﻿using AuthSystem.Dto;
 using AuthSystem.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -58,6 +59,31 @@ namespace AuthSystem.Services
 
         }
 
+
+        public async Task<(User? user, string Message)> GoogleLoginAsync(GoogleLoginDto loginDto)
+        {
+            if (string.IsNullOrWhiteSpace(loginDto.Email)) return (null, Message: "Email Is Required !");
+
+            var user = await GetUserByEmail(loginDto.Email);
+
+            if (user == null)
+            {
+                var newUser = new User
+                {
+                    Email = loginDto.Email,
+                    UserName = loginDto.UserName ?? loginDto.Email.Split("@")[0],
+                    EmailVerified = true,
+                    GoogleId = loginDto.GoogleId,
+                    PasswordHash = null,
+                    Status = Status.Online
+                };
+
+                await _userCollection.InsertOneAsync(newUser);
+                user = newUser;
+            }
+
+            return (user, "Succesfully Logged In With Google Account !");
+        }
 
         public async Task<RegisterResponseDto> RegisterAsync(RegisterUserDto register)
         {

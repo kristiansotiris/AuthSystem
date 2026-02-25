@@ -50,3 +50,7 @@ Content-Type: application/json
 }
 
 ###
+
+GET {{AuthSystem_HostAddress}}/api/auth/signin-google
+
+###
